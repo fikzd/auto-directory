@@ -21,6 +21,13 @@ jobs:
         run: |
           echo "NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" >> .env.local
           echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" >> .env.local
+      
+      - name: Check .env.local exists and keys (masked)
+        run: |
+          ls -la
+          echo "----- .env.local preview -----"
+          sed -E 's/(=.*)/=<hidden>/' .env.local
+          echo "File size:" && wc -c .env.local
 
       - name: Build static export
         run: npm run build
