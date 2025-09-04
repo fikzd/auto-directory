@@ -2,18 +2,32 @@
 
 import { useState } from "react";
 
-const FORMSPREE_ENDPOINT = "https://formspree.io/f/mrbaoplw"; // <- replace
+const FORMSPREE_ENDPOINT = "https://formspree.io/f/XXXXXXXX"; // <- replace with your endpoint
+
+type FormState = {
+  name: string;
+  email: string;
+  message: string;
+};
 
 export default function ContactPage() {
-  const [formData, setFormData] = useState({ name: "", email: "", message: "" });
-  const [status, setStatus] = useState<"idle" | "sending" | "ok" | "error">("idle");
+  const [formData, setFormData] = useState<FormState>({
+    name: "",
+    email: "",
+    message: "",
+  });
+  const [status, setStatus] = useState<"idle" | "sending" | "ok" | "error">(
+    "idle"
+  );
   const [error, setError] = useState<string | null>(null);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setStatus("sending");
     setError(null);
@@ -21,24 +35,34 @@ export default function ContactPage() {
     try {
       const res = await fetch(FORMSPREE_ENDPOINT, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          message: formData.message,
-        }),
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(formData),
       });
 
       if (res.ok) {
         setStatus("ok");
         setFormData({ name: "", email: "", message: "" });
-      } else {
-        const body = await res.json().catch(() => ({}));
-        setError(body?.error || "Something went wrong. Please try again.");
-        setStatus("error");
+        return;
       }
-    } catch (err: any) {
-      setError(err?.message || "Network error");
+
+      // parse error body without using `any`
+      const body: unknown = await res.json().catch(() => ({}));
+      const msg =
+        typeof body === "object" &&
+        body !== null &&
+        "error" in body &&
+        typeof (body as { error?: string }).error === "string"
+          ? (body as { error: string }).error
+          : "Something went wrong. Please try again.";
+
+      setError(msg);
+      setStatus("error");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Network error";
+      setError(msg);
       setStatus("error");
     }
   };
@@ -55,7 +79,9 @@ export default function ContactPage() {
       </p>
 
       {status === "ok" ? (
-        <p className="text-green-500 text-lg">Thanks! Your message was sent.</p>
+        <p className="text-green-500 text-lg">
+          Thanks! Your message was sent.
+        </p>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
@@ -85,7 +111,9 @@ export default function ContactPage() {
             onChange={handleChange}
             required
           />
-          {status === "error" && <p className="text-red-500">{error}</p>}
+          {status === "error" && (
+            <p className="text-red-500">{error ?? "Submission failed"}</p>
+          )}
           <button
             type="submit"
             disabled={status === "sending"}
