@@ -1,4 +1,4 @@
-# no directory listing and default doc
+# no directory listing and default doc1
 Options -Indexes
 DirectoryIndex index.html
 
