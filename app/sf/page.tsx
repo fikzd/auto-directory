@@ -1,44 +1,75 @@
 'use client';
+
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
-import ShopCard, { Shop } from '@/components/ShopCard';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+type Shop = {
+  id: number;
+  name: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  phone?: string;
+  website?: string;
+  category?: string;
+};
 
 export default function SFPage() {
-  const [shops, setShops] = useState<Shop[] | null>(null);
-  const [page, setPage] = useState(1);
+  const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
 
-  async function load(p = 1) {
-    setLoading(true);
-    const { data, error } = await supabase.rpc('shops_by_city', {
-      city_in: 'San Francisco',
-      state_in: 'CA',
-      page: p,
-      page_size: 20
-    });
-    if (error) throw error;
-    setShops(data as Shop[]);
-    setLoading(false);
-  }
+  useEffect(() => {
+    async function load() {
+      // call your RPC: shops_by_city(city, state, search, page, page_size)
+      const { data, error } = await supabase.rpc('shops_by_city', {
+        city: 'San Francisco',
+        state: 'CA',
+        search: null,
+        page: 1,
+        page_size: 20,
+      });
+      if (error) {
+        console.error('Supabase error:', error);
+      }
+      setShops((data as Shop[]) || []);
+      setLoading(false);
+    }
+    load();
+  }, []);
 
-  useEffect(() => { load(1).catch(console.error); }, []);
+  if (loading) return <div className="p-6">Loading…</div>;
 
   return (
-    <main style={{maxWidth:720, margin:'40px auto', padding:'0 16px'}}>
-      <h1 style={{fontSize:24, marginBottom:8}}>San Francisco Auto Shops</h1>
-      {loading && <p>Loading…</p>}
-      {!loading && (!shops || shops.length === 0) && <p>No shops yet.</p>}
-      <div style={{marginTop:12}}>
-        {shops?.map(s => <ShopCard key={s.id} shop={s} />)}
-      </div>
-      <div style={{display:'flex', gap:8, marginTop:16}}>
-        <button onClick={() => { const p = Math.max(1, page-1); setPage(p); load(p); }} disabled={page<=1}>
-          Previous
-        </button>
-        <button onClick={() => { const p = page+1; setPage(p); load(p); }}>
-          Next
-        </button>
-      </div>
+    <main className="max-w-3xl mx-auto p-6 space-y-4">
+      <h1 className="text-3xl font-semibold">San Francisco Auto Shops</h1>
+      {shops.map((s) => (
+        <div key={s.id} className="rounded-2xl border p-5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">{s.name}</h2>
+            {s.category && (
+              <span className="text-xs rounded-full px-3 py-1 border opacity-70">
+                {s.category}
+              </span>
+            )}
+          </div>
+          <p className="opacity-75">
+            {s.address ? `${s.address}, ` : ''}
+            {s.city}, {s.state}
+          </p>
+          {s.phone && <p className="opacity-75">{s.phone}</p>}
+          {s.website && (
+            <a className="underline" href={s.website} target="_blank" rel="noreferrer">
+              Website →
+            </a>
+          )}
+        </div>
+      ))}
+      {shops.length === 0 && <p>No shops found.</p>}
     </main>
   );
 }
