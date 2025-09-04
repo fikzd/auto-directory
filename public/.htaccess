@@ -1,6 +1,17 @@
+# no directory listing and default doc
 Options -Indexes
 DirectoryIndex index.html
 
+# force https
 RewriteEngine On
 RewriteCond %{HTTPS} off
 RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# --- SPA fallback for Next.js static export ---
+# if the file or folder exists, serve it
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# otherwise, serve index.html (client-side router handles it)
+RewriteRule . /index.html [L]
