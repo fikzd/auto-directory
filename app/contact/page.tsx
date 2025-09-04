@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-const FORMSPREE_ENDPOINT = "https://formspree.io/f/XXXXXXXX"; // <- replace with your endpoint
+const FORMSPREE_ENDPOINT = "https://formspree.io/f/mrbaoplw"; // <- replace with your endpoint
 
 type FormState = {
   name: string;
